@@ -7,7 +7,7 @@ Our Kentico 13 Baseline for MVC .Net Core 5.0 Site, the perfect starting point f
 ***
 
 # Installation
-Install a normal Kentico 13 Site, and hotfix it up 13.0.5 (this is the minimum version that supports .Net Core 5.0)
+Install a normal Kentico 13 Site, and hotfix it to at least 13.0.16 (KX 13 Refresh 1)
 
 Also make sure to install .Net 5.0 and .Net Core 3.1 onto your solution (you can install the Hosting Bundles as well if you plan on hosting via IIS)
 
@@ -20,6 +20,9 @@ On the Kentico Admin (WebApp/Mother) solution, install the following NuGet Packa
 Optionally install
 1. [HBS_CSVImport](https://www.nuget.org/packages/HBS_CSVImport/) (will be upgraded to 13 in near future)
 2. [HBS.AutomaticGeneratedUserRoles.Kentico](https://www.nuget.org/packages/HBS.AutomaticGeneratedUserRoles.Kentico/)
+
+## Hotfixing and Nuget packages.
+Since some of these packages depend on the Kentico.Xperience.Libraries packages, installing these nuget packages will install this nuget package, which can conflict with the hotfix version of your code.  Be sure if you hotfix to a version of Kentico Xperience, that on the Admin solution you also update the Kentico.Xperience.Libraries nuget package to the same hotfix.
 
 ## Install Site Objects
 In your Kentico Admin instance, go to `Sites` - `Import Site or Object` and upload the [Baseline Site](https://github.com/HBSTech/Kentico13CoreBaseline/blob/master/Kentico13CoreBaseline-AdminSiteImport.zip).  You can import these objects into an existing site or create the site from it.
