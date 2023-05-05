@@ -27,6 +27,7 @@ using FluentValidation.AspNetCore;
 using XperienceCommunity.WidgetFilter;
 using Core.Middleware;
 using Core;
+using CMS.Core;
 
 namespace MVC
 {
@@ -37,7 +38,7 @@ namespace MVC
         {
             // MVC Caching
             services.AddMVCCaching();
-            services.AddMVCCachingAutoDependencyInjectionByAttribute();
+            services.AddMVCCachingAutoDependencyInjectionByAttribute(AssemblyDiscoverableHelper.GetAssemblies(false));
 
             // Set paths for the jquery bundles
             services.Configure<FormBuilderBundlesOptions>(options =>
