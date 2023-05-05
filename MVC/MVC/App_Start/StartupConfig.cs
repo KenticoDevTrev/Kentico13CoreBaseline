@@ -39,6 +39,13 @@ namespace MVC
             services.AddMVCCaching();
             services.AddMVCCachingAutoDependencyInjectionByAttribute();
 
+            // Set paths for the jquery bundles
+            services.Configure<FormBuilderBundlesOptions>(options =>
+            {
+                options.JQueryCustomBundleWebRootPath = "js/individual/jquery";
+                options.JQueryUnobtrusiveAjaxCustomBundleWebRootPath = "js/individual/jquery.unobtrusive.ajax";
+            });
+            
             // Baseline services
             services.UseCoreBaseline();
 
