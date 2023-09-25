@@ -33,5 +33,10 @@
         /// If true, will include the client-side javascript that sets the active
         /// </summary>
         public bool IncludeSecondaryNavSelector { get; set; } = true;
+
+        /// <summary>
+        /// If true, will include the hidden screen reader navigation
+        /// </summary>
+        public bool IncludeScreenReaderNav { get; set; } = true;
     }
 }

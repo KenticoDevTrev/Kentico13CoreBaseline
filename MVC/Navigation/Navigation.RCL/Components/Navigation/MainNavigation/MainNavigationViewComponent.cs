@@ -25,7 +25,7 @@ namespace Navigation.Components.Navigation.MainNavigation
         }
         public record MainNavigationViewModel
         {
-            public NavigationViewModel(IEnumerable<NavigationItem> navItems, string navWrapperClass, bool includeScreenReaderNavigation)
+            public MainNavigationViewModel(IEnumerable<NavigationItem> navItems, string navWrapperClass, bool includeScreenReaderNavigation)
             {
                 NavItems = navItems;
                 NavWrapperClass = navWrapperClass;

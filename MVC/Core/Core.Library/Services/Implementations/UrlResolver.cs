@@ -37,13 +37,27 @@ namespace Core.Services.Implementations
             if (_httpContextAccessor.HttpContext.AsMaybe().TryGetValue(out var httpContext))
             {
                 var request = httpContext.Request;
-                return new UriBuilder
+                if(request.Host.Value.Contains(':') && int.TryParse(request.Host.Value.Split(':')[1], out var port))
                 {
-                    Scheme = request.Scheme,
-                    Host = request.Host.Value,
-                    Path = relativeUrl.Split('?')[0],
-                    Query = (relativeUrl.Contains('?') ? relativeUrl.Split('?')[1] : "")
-                }.Uri;
+                    return new UriBuilder
+                    {
+                        Scheme = request.Scheme,
+                        Host = request.Host.Value.Split(':')[0],
+                        Port = port,
+                        Path = relativeUrl.Split('?')[0],
+                        Query = (relativeUrl.Contains('?') ? relativeUrl.Split('?')[1] : "")
+                    }.Uri;
+                } else
+                {
+                    return new UriBuilder
+                    {
+                        Scheme = request.Scheme,
+                        Host = request.Host.Value.Split(':')[0],
+                        Path = relativeUrl.Split('?')[0],
+                        Query = (relativeUrl.Contains('?') ? relativeUrl.Split('?')[1] : "")
+                    }.Uri;
+                }
+                
             }
             else
             {

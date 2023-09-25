@@ -1,5 +1,8 @@
 ﻿using CMS.Base;
+using CMS.DocumentEngine.Internal;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Kentico.Web.Mvc;
 
 namespace Core.Repositories.Implementation
 {
@@ -13,6 +16,8 @@ namespace Core.Repositories.Implementation
         private readonly IUrlResolver _urlResolver;
         private readonly IMediaRepository _mediaRepository;
         private readonly ISiteService _siteService;
+        private readonly IPageUrlRetriever _pageUrlRetriever;
+        private readonly IUrlHelper _urlHelper;
 
         public MetaDataRepository(IPageRetriever pageRetriever,
             IPageDataContextRetriever pageDataContextRetriever,
@@ -20,7 +25,9 @@ namespace Core.Repositories.Implementation
             IHttpContextAccessor httpContextAccessor,
             IUrlResolver urlResolver,
             IMediaRepository mediaRepository,
-            ISiteService siteService)
+            ISiteService siteService,
+            IPageUrlRetriever pageUrlRetriever,
+            IUrlHelper urlHelper)
         {
             _pageRetriever = pageRetriever;
             _pageDataContextRetriever = pageDataContextRetriever;
@@ -29,13 +36,15 @@ namespace Core.Repositories.Implementation
             _urlResolver = urlResolver;
             _mediaRepository = mediaRepository;
             _siteService = siteService;
+            _pageUrlRetriever = pageUrlRetriever;
+            _urlHelper = urlHelper;
         }
 
 
         public async Task<Result<PageMetaData>> GetMetaDataAsync(int documentId, string? thumbnail = null)
         {
-            var builder = _cacheDependencyBuilderFactory.Create();
-            builder.Page(documentId);
+            var builder = _cacheDependencyBuilderFactory.Create()
+                .Page(documentId);
 
             var page = await _pageRetriever.RetrieveAsync<TreeNode>(
                 query => query
@@ -43,10 +52,8 @@ namespace Core.Repositories.Implementation
                     .Columns(nameof(TreeNode.DocumentCustomData), nameof(TreeNode.DocumentPageTitle), nameof(TreeNode.DocumentPageDescription), nameof(TreeNode.DocumentPageKeyWords))
                     .TopN(1),
                 cacheSettings => cacheSettings
-                    .Dependencies((result, csbuilder) => builder.ApplyDependenciesTo(key => csbuilder.Custom(key)))
-                    .Key($"GetMetaDataAsync|{documentId}")
-                    .Expiration(TimeSpan.FromMinutes(1440))
-            );
+                .Configure(builder, CacheMinuteTypes.Medium.ToDouble(), "GetMetaDataAsync", documentId)
+            ) ;
             if (page.Any())
             {
                 return await GetMetaDataInternalAsync(page.First(), thumbnail);
@@ -68,9 +75,7 @@ namespace Core.Repositories.Implementation
                     .Columns(nameof(TreeNode.DocumentCustomData), nameof(TreeNode.DocumentPageTitle), nameof(TreeNode.DocumentPageDescription), nameof(TreeNode.DocumentPageKeyWords))
                     .TopN(1),
                 cacheSettings => cacheSettings
-                    .Dependencies((result, csbuilder) => builder.ApplyDependenciesTo(key => csbuilder.Custom(key)))
-                    .Key($"GetMetaDataAsync|{documentGuid}")
-                    .Expiration(TimeSpan.FromDays(1))
+                    .Configure(builder, CacheMinuteTypes.VeryLong.ToDouble(), "GetMetaDataAsync", documentGuid)
             );
             if (page.Any())
             {
@@ -124,9 +129,9 @@ namespace Core.Repositories.Implementation
                 }
             }
             */
-
+            
             // Document custom data overrides, then site default
-            if(thumbnail.AsNullOrWhitespaceMaybe().HasNoValue)
+            if (thumbnail.AsNullOrWhitespaceMaybe().HasNoValue)
             {
                 var customDataVal = node.DocumentCustomData.GetValue("MetaData_ThumbnailSmall");
                 thumbnail = customDataVal != null && customDataVal is string thumbSmallVal ? thumbSmallVal : string.Empty;
@@ -146,10 +151,10 @@ namespace Core.Repositories.Implementation
                 var customDataVal = node.DocumentCustomData.GetValue("MetaData_Description");
                 description = customDataVal != null && customDataVal is string descriptionVal ? descriptionVal : node.DocumentPageDescription;
             }
-            if(title.AsNullOrWhitespaceMaybe().HasNoValue)
+            if (title.AsNullOrWhitespaceMaybe().HasNoValue)
             {
                 var customDataVal = node.DocumentCustomData.GetValue("MetaData_Title");
-                description = customDataVal != null && customDataVal is string titleVal ? titleVal : node.DocumentPageTitle.AsNullOrWhitespaceMaybe().GetValueOrDefault(node.DocumentName);
+                title = customDataVal != null && customDataVal is string titleVal ? titleVal : node.DocumentPageTitle.AsNullOrWhitespaceMaybe().GetValueOrDefault(node.DocumentName);
             }
 
             PageMetaData metaData = new PageMetaData()
@@ -160,7 +165,35 @@ namespace Core.Repositories.Implementation
                 Thumbnail = thumbnail.AsNullOrWhitespaceMaybe().TryGetValue(out var thumbUrl) ? _urlResolver.GetAbsoluteUrl(thumbUrl) : string.Empty,
                 ThumbnailLarge = thumbnailLarge.AsNullOrWhitespaceMaybe().TryGetValue(out var thumbLargeUrl) ? _urlResolver.GetAbsoluteUrl(thumbLargeUrl) : string.Empty,
             };
+
+            // Handle canonical url
+            if (GetCanonicalUrl(node).TryGetValue(out var canonicalUrl))
+            {
+                metaData.CanonicalUrl = canonicalUrl;
+            }
+            else if (_urlHelper.Kentico().PageCanonicalUrl().AsNullOrWhitespaceMaybe().TryGetValue(out var canonicalUrlFromUrl))
+            {
+                // Try to get from url
+                metaData.CanonicalUrl = canonicalUrlFromUrl;
+            }
+
             return Task.FromResult(metaData);
+        }
+
+        private Result<string> GetCanonicalUrl(TreeNode page)
+        {
+            // Get original page URL
+            if (page.IsLink)
+            {
+                var originalNodeData = DocumentNodeDataInfo.Provider.Get(page.OriginalNodeID);
+                var canonicalUrl = _pageUrlRetriever.Retrieve(originalNodeData.NodeAliasPath, false).RelativePath;
+                return Result.SuccessIf(!string.IsNullOrEmpty(canonicalUrl), canonicalUrl, "Could not retrieve relative path");
+            }
+            else
+            {
+                var canonicalUrl = _pageUrlRetriever.Retrieve(page, false).RelativePath;
+                return Result.SuccessIf(!string.IsNullOrEmpty(canonicalUrl), canonicalUrl, "Could not retrieve relative path");
+            }
         }
 
     }

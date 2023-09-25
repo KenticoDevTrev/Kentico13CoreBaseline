@@ -28,7 +28,7 @@ namespace Core.Components.PageMetaData
                 return Content(string.Empty);
             }
 
-            var metaData = documentId > 0 ? await _metaDataRepository.GetMetaDataAsync(documentId) : await _metaDataRepository.GetMetaDataAsync(documentId);
+            var metaData = documentId > 0 ? await _metaDataRepository.GetMetaDataAsync(documentId) : await _metaDataRepository.GetMetaDataAsync();
             if (metaData.TryGetValue(out var metaDataVal))
             {
                 var model = new PageMetaDataViewModel()
@@ -36,7 +36,8 @@ namespace Core.Components.PageMetaData
                     Title = metaDataVal.Title,
                     Keywords = metaDataVal.Keywords,
                     Description = metaDataVal.Description,
-                    Thumbnail = metaDataVal.Thumbnail
+                    Thumbnail = metaDataVal.Thumbnail,
+                    CanonicalUrl = metaDataVal.CanonicalUrl
                 };
                 return View("/Components/PageMetaData/PageMetaData.cshtml", model);
             }

@@ -43,6 +43,7 @@ task("build:jsbundle", series(clean, jsBundle));
 task("build:jsraw", series(clean, jsRaw));
 
 task("build:images", series(clean, images));
+task("build:copy", series(clean, copy));
 
 task("watch", () => {
     getEnvironmentConfigs(configs.scss, true).forEach((config) => {
